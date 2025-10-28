@@ -11,12 +11,26 @@ import Stack from "@mui/material/Stack";
 
 //Component
 import { Drawer } from "../components";
+import FormControl, { useFormControl } from "@mui/material/FormControl";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import FormHelperText from "@mui/material/FormHelperText";
+import Snackbar from "@mui/material/Snackbar";
 
 //API Lib
 import { axiosInstance } from "../util/axiosInstance";
 
 function Department() {
-  const [openDrawer, setOpenDrawer] = useState(false);
+  const [openSnack, setOpenSnack] = useState({});
+
+  const [openDrawer, setOpenDrawer] = useState({
+    status: false,
+    drawerType: "addNew",
+  });
+
+  const [formData, setFormData] = useState({
+    deptCode: "",
+    deptName: "",
+  });
 
   const [table, setTable] = useState({
     columns: [
@@ -43,6 +57,14 @@ function Department() {
     rows: [],
   });
 
+  const handleSnackDrawer = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+
+    setOpenSnack((prev) => (prev ? false : true));
+  };
+
   useEffect(() => {
     axiosInstance
       .get("/department")
@@ -68,6 +90,46 @@ function Department() {
 
   const paginationModel = { page: 0, pageSize: 5 };
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const onAddNewDepartment = async () => {
+    await axiosInstance
+      .post("/department", {
+        departmentcode: formData.deptCode,
+        departmentname: formData.deptName,
+      })
+      .then(function (response) {
+        <Snackbar
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          open={openSnack}
+          onClose={handleSnackDrawer}
+          message="I love snacks"
+        />;
+      })
+      .catch(function (error) {
+        console.log(error);
+      })
+      .finally(function () {
+        // always executed
+      });
+  };
+
+  const handleOnSubmitNewDepartment = () => {
+    handleSnackDrawer();
+    onAddNewDepartment();
+    setOpenDrawer((prev) => ({
+      ...prev,
+      drawerType: "addNew",
+      status: true,
+    }));
+  };
+
   return (
     <>
       <div className="flex flex-col gap-5 w-full">
@@ -82,7 +144,18 @@ function Department() {
               size="small"
               className="flex-1"
             />
-            <Button variant="outlined" onClick={() => setOpenDrawer(true)}>Add New</Button>
+            <Button
+              variant="outlined"
+              onClick={() =>
+                setOpenDrawer((prev) => ({
+                  ...prev,
+                  drawerType: "addNew",
+                  status: true,
+                }))
+              }
+            >
+              Add New
+            </Button>
           </div>
 
           <Paper sx={{ height: 400, width: "100%" }}>
@@ -98,8 +171,55 @@ function Department() {
           </Paper>
         </div>
       </div>
-      <Drawer open={openDrawer} onClose={() => setOpenDrawer(false)}>
-        <div className="p-4">Add New Department Soon</div>
+      <Drawer
+        open={openDrawer.status}
+        onClose={() =>
+          setOpenDrawer((prev) => ({
+            ...prev,
+            status: false,
+          }))
+        }
+      >
+        {openDrawer.drawerType === "addNew" ? (
+          <div className="flex flex-col gap-2 p-5">
+            <span className="text-xl font-bold mb-4">Add New Department</span>
+
+            {/* <div className="grid grid-cols-2 gap-2">
+              <OutlinedInput placeholder="Department Code" size="small" />
+              <OutlinedInput placeholder="Department Name" size="small" />
+            </div> */}
+            <form
+              noValidate
+              autoComplete="off"
+              className="flex flex-col gap-2 items-end"
+            >
+              <div className="!grid !grid-cols-2 gap-2 w-full">
+                <FormControl className="">
+                  <OutlinedInput
+                    placeholder="Department Code"
+                    name="deptCode"
+                    onChange={handleChange}
+                    size="small"
+                  />
+                </FormControl>
+                <FormControl>
+                  <OutlinedInput
+                    placeholder="Department Name"
+                    name="deptName"
+                    onChange={handleChange}
+                    size="small"
+                  />
+                </FormControl>
+              </div>
+
+              <Button variant="contained" onClick={handleOnSubmitNewDepartment}>
+                Submit
+              </Button>
+            </form>
+          </div>
+        ) : (
+          <div>test</div>
+        )}
       </Drawer>
     </>
   );
